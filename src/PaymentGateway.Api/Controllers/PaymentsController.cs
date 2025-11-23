@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-
+using PaymentGateway.Api.Clients;
 using PaymentGateway.Api.Models;
 using PaymentGateway.Api.Models.Requests;
 using PaymentGateway.Api.Models.Responses;
 using PaymentGateway.Api.Services;
-using PaymentGateway.Api.Services.AcquirerService;
 
 namespace PaymentGateway.Api.Controllers;
 
@@ -39,9 +38,9 @@ public class PaymentsController : Controller
     {
         ValidateRequest(request, out string validationMessage);
 
-        if(!string.IsNullOrEmpty(validationMessage))
+        if (!string.IsNullOrEmpty(validationMessage))
         {
-            return BadRequest(validationMessage);
+            return BadRequest(new PostPaymentRejectedResponse(validationMessage));
         }
 
         var acquirerResponse = await _bankClient.AuthorizeTransaction(new()

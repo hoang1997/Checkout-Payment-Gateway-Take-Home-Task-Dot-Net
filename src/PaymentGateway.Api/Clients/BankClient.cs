@@ -1,10 +1,11 @@
 ﻿
-using System.Text.Json;
+using System.Text.RegularExpressions;
 
 using PaymentGateway.Api.Models.Requests;
 using PaymentGateway.Api.Models.Responses;
+using PaymentGateway.Api.Serializer;
 
-namespace PaymentGateway.Api.Services.AcquirerService
+namespace PaymentGateway.Api.Clients
 {
     public class BankClient : IBankClient
     {
@@ -22,10 +23,7 @@ namespace PaymentGateway.Api.Services.AcquirerService
                 throw new ArgumentException(validationMessage);
             }
 
-            HttpContent content = JsonContent.Create(request, options: new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-            });
+            HttpContent content = JsonContent.Create(request, options: SerializerOptions.JsonSerializerOptionsInstance);
 
             var response = await _httpClient.PostAsync($"/payments", content);
 
@@ -33,7 +31,7 @@ namespace PaymentGateway.Api.Services.AcquirerService
 
             var jsonString = await response.Content.ReadAsStringAsync();
 
-            var acquirerResponse = await response.Content.ReadFromJsonAsync<PostAcquirerResponse>(new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower });
+            var acquirerResponse = await response.Content.ReadFromJsonAsync<PostAcquirerResponse>(SerializerOptions.JsonSerializerOptionsInstance);
 
             return acquirerResponse;
         }
@@ -41,17 +39,24 @@ namespace PaymentGateway.Api.Services.AcquirerService
         public bool ValidateRequest(PostAcquirerRequest request, out string validationMessage)
         {
             validationMessage = string.Empty;
-            if (string.IsNullOrEmpty(request.Currency))
+
+            if(request.Amount <= 0)
+            {
+                validationMessage = "Amount cannot be zero";
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(request.Currency) || request.Currency.Length != 3)
             {
                 validationMessage = "Currency is required";
                 return false;
             }
-            if (string.IsNullOrEmpty(request.CardNumber) || request.CardNumber.Length != 16 || !long.TryParse(request.CardNumber, out _))
+            if (string.IsNullOrEmpty(request.CardNumber) || !long.TryParse(request.CardNumber, out _))
             {
                 validationMessage = "Invalid card number";
                 return false;
             }
-            if (string.IsNullOrEmpty(request.ExpiryDate) || !System.Text.RegularExpressions.Regex.IsMatch(request.ExpiryDate, @"^(0[1-9]|1[0-2])\/\d{2}$"))
+            if (string.IsNullOrEmpty(request.ExpiryDate) || !Regex.IsMatch(request.ExpiryDate, @"^(0[1-9]|1[0-2])\/\d{2}$"))
             {
                 validationMessage = "Invalid expiry date format. Use MM/YY";
                 return false;

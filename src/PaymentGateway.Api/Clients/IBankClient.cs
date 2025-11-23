@@ -1,7 +1,7 @@
 ﻿using PaymentGateway.Api.Models.Requests;
 using PaymentGateway.Api.Models.Responses;
 
-namespace PaymentGateway.Api.Services.AcquirerService
+namespace PaymentGateway.Api.Clients
 {
     public interface IBankClient
     {

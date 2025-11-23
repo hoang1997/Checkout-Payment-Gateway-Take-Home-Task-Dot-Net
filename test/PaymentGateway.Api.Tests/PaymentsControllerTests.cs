@@ -15,11 +15,11 @@ using PaymentGateway.Api.Models;
 using PaymentGateway.Api.Models.Requests;
 using PaymentGateway.Api.Models.Responses;
 using PaymentGateway.Api.Services;
-using PaymentGateway.Api.Services.AcquirerService;
+using PaymentGateway.Api.Clients;
 
 namespace PaymentGateway.Api.Tests;
 
-public class PaymentsControllerUnitTests
+public class PaymentsControllerTests
 {
     private readonly Random _random = new();
     private Mock<IBankClient> _bankClientMock;
@@ -178,11 +178,12 @@ public class PaymentsControllerUnitTests
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         });
         var response = await _httpClient.PostAsync($"/api/payments", body);
-        var responseContent = await response.Content.ReadAsStringAsync();
+        var responseContent = await response.Content.ReadFromJsonAsync<PostPaymentRejectedResponse>();
 
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(statusCode));
-        Assert.That(responseContent, Is.EqualTo(validationMessage));
+        Assert.That(responseContent?.Status, Is.EqualTo(PaymentStatus.Rejected));
+        Assert.That(responseContent.Reason, Is.EqualTo(validationMessage));
     }
 
     [TestCase("GBPP", HttpStatusCode.BadRequest)]
@@ -201,17 +202,18 @@ public class PaymentsControllerUnitTests
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         });
         var response = await _httpClient.PostAsync($"/api/Payments", body);
-        var responseContent = await response.Content.ReadAsStringAsync();
+        var responseContent = await response.Content.ReadFromJsonAsync<PostPaymentRejectedResponse>();
 
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(statusCode));
-        Assert.That(responseContent, Is.EqualTo("Invalid currency code, must contain only 3 characters"));
+        Assert.That(responseContent?.Status, Is.EqualTo(PaymentStatus.Rejected));
+        Assert.That(responseContent.Reason, Is.EqualTo("Invalid currency code, must contain only 3 characters"));
     }
 
     [TestCase(12345, HttpStatusCode.BadRequest)]
     [TestCase(12, HttpStatusCode.BadRequest)]
     [TestCase(1, HttpStatusCode.BadRequest)]
-    public async Task ValidateCurrency_ReturnsBadRequest(int cvv, HttpStatusCode statusCode)
+    public async Task ValidateSecurityCode_ReturnsBadRequest(int cvv, HttpStatusCode statusCode)
     {
         // Arrange
         SetHttpClient();
@@ -224,11 +226,13 @@ public class PaymentsControllerUnitTests
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         });
         var response = await _httpClient.PostAsync($"/api/payments", body);
-        var responseContent = await response.Content.ReadAsStringAsync();
+        var responseContent = await response.Content.ReadFromJsonAsync<PostPaymentRejectedResponse>();
 
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(statusCode));
-        Assert.That(responseContent, Is.EqualTo("Invalid CVV, must contain only 3-4 numeric characters"));
+        Assert.That(responseContent?.Status, Is.EqualTo(PaymentStatus.Rejected));
+        Assert.That(responseContent.Reason, Is.EqualTo("Invalid CVV, must contain only 3-4 numeric characters"));
+
     }
 
 
