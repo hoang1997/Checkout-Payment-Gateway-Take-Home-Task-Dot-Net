@@ -1,14 +1,9 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-
 using Moq;
-
-using Newtonsoft.Json.Serialization;
-using Newtonsoft.Json;
 
 using PaymentGateway.Api.Controllers;
 using PaymentGateway.Api.Models;

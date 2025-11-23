@@ -56,9 +56,9 @@ namespace PaymentGateway.Api.Clients
                 validationMessage = "Invalid card number";
                 return false;
             }
-            if (string.IsNullOrEmpty(request.ExpiryDate) || !Regex.IsMatch(request.ExpiryDate, @"^(0[1-9]|1[0-2])\/\d{2}$"))
+            if (string.IsNullOrEmpty(request.ExpiryDate) || !Regex.IsMatch(request.ExpiryDate, @"^(0[1-9]|1[0-2])\/\d{4}$"))
             {
-                validationMessage = "Invalid expiry date format. Use MM/YY";
+                validationMessage = "Invalid expiry date format. Use MM/YYYY";
                 return false;
             }
             if (string.IsNullOrEmpty(request.Cvv) || request.Cvv.Length != 3 || !int.TryParse(request.Cvv, out _))

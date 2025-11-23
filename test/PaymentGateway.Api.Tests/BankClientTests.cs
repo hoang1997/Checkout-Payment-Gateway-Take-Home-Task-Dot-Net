@@ -78,9 +78,9 @@ namespace PaymentGateway.Api.Tests
             Assert.That(validationMessage, Is.EqualTo("Invalid card number"));
         }
 
-        [TestCase("13/25")]
-        [TestCase("-12/26")]
-        [TestCase("-12/26a")]
+        [TestCase("13/2025")]
+        [TestCase("-12/226")]
+        [TestCase("-12/2026a")]
         public void InvalidPostAcquirerRequest_ExpiryDate_ReturnsFalse(string expiryDate)
         {
             var httpClient = new HttpClient();
@@ -91,7 +91,7 @@ namespace PaymentGateway.Api.Tests
             var isValid = sut.ValidateRequest(_request, out string validationMessage);
 
             Assert.That(isValid, Is.False);
-            Assert.That(validationMessage, Is.EqualTo("Invalid expiry date format. Use MM/YY"));
+            Assert.That(validationMessage, Is.EqualTo("Invalid expiry date format. Use MM/YYYY"));
         }
 
         [TestCase("13/25")]
