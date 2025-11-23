@@ -9,7 +9,7 @@ namespace PaymentGateway.Api.Clients
 {
     public class BankClient : IBankClient
     {
-        HttpClient _httpClient;
+        private readonly HttpClient _httpClient;
         public BankClient(HttpClient httpClient)
         {
             _httpClient = httpClient;

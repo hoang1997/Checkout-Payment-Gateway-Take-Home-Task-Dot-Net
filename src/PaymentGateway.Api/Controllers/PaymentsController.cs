@@ -23,11 +23,16 @@ public class PaymentsController : Controller
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<GetPaymentResponse?>> GetPaymentAsync(Guid id)
     {
+        if(id == Guid.Empty)
+        {
+            return BadRequest("Needs to be a valid Guid");
+        }
+
         var payment = _paymentsRepository.Get(id);
 
         if(payment == null)
         {
-            return NotFound();
+            return NotFound($"Payment response not found for Id: {id}");
         }
 
         return new OkObjectResult(payment);
