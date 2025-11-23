@@ -1,10 +1,14 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
 using Moq;
+
+using Newtonsoft.Json.Serialization;
+using Newtonsoft.Json;
 
 using PaymentGateway.Api.Controllers;
 using PaymentGateway.Api.Models;
@@ -39,7 +43,7 @@ public class PaymentsControllerUnitTests
         var payment = new PostPaymentResponse
         {
             Id = Guid.NewGuid(),
-            ExpiryYear = _random.Next(2023, 2030),
+            ExpiryYear = DateTime.UtcNow.AddMonths(12).Year,
             ExpiryMonth = _random.Next(1, 12),
             Amount = _random.Next(1, 10000),
             CardNumberLastFour = _random.Next(1111, 9999),
@@ -51,7 +55,7 @@ public class PaymentsControllerUnitTests
         SetHttpClient();
 
         // Act
-        var response = await _httpClient.GetAsync($"/api/Payments/{payment.Id}");
+        var response = await _httpClient.GetAsync($"/api/payments/{payment.Id}");
         var paymentResponse = await response.Content.ReadFromJsonAsync<PostPaymentResponse>();
         
         // Assert
@@ -67,7 +71,7 @@ public class PaymentsControllerUnitTests
         SetHttpClient();
 
         // Act
-        var response = await _httpClient.GetAsync($"/api/Payments/{Guid.NewGuid()}");
+        var response = await _httpClient.GetAsync($"/api/payments/{Guid.NewGuid()}");
         
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
@@ -79,17 +83,20 @@ public class PaymentsControllerUnitTests
     {
         // Arrange
 
-        _bankClientMock.Setup(bc => bc.AuthorizeTranaction(It.IsAny<PostAcquirerRequest>()))
+        _bankClientMock.Setup(bc => bc.AuthorizeTransaction(It.IsAny<PostAcquirerRequest>()))
             .ReturnsAsync(new PostAcquirerResponse() { AuthorizationCode = Guid.NewGuid().ToString(), Authorized = true });
 
         SetHttpClient();
 
         // Act 
-        var request = new PostPaymentRequest() { Amount = -10, Currency = "GBP", CardNumber = 1234567890123457, ExpiryMonth = 11, ExpiryYear = 2026, Cvv = 111 };
-
-        var response = await _httpClient.PostAsync($"/api/Payments", JsonContent.Create(request));
-
-        var responseContent = await response.Content.ReadFromJsonAsync<PostPaymentResponse>();
+        var dateTime = DateTime.UtcNow.AddMonths(12);
+        var request = new PostPaymentRequest() { Amount = -10, Currency = "GBP", CardNumber = 1234567890123457, ExpiryMonth = dateTime.Month, ExpiryYear = dateTime.Year, Cvv = 111 };
+        var body = JsonContent.Create(request, options: new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        });
+        var response = await _httpClient.PostAsync($"/api/payments", body);
+        var responseContent = await response.Content.ReadFromJsonAsync<PostPaymentResponse>(new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower});
 
         // Assert
 
@@ -113,8 +120,13 @@ public class PaymentsControllerUnitTests
         SetHttpClient();
 
         // Act 
-        var request = new PostPaymentRequest() { Amount = -10, Currency = "GBP", CardNumber = cardNumber, ExpiryMonth = 13, ExpiryYear = 2026, Cvv = 111 };
-        var response = await _httpClient.PostAsync($"/api/Payments", JsonContent.Create(request));
+        var dateTime = DateTime.UtcNow.AddMonths(5);
+        var request = new PostPaymentRequest() { Amount = -10, Currency = "GBP", CardNumber = cardNumber, ExpiryMonth = 13, ExpiryYear = dateTime.Year, Cvv = 111 };
+        var body = JsonContent.Create(request, options: new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        });
+        var response = await _httpClient.PostAsync($"/api/payments", body);
 
         // Assert
 
@@ -129,14 +141,19 @@ public class PaymentsControllerUnitTests
     public async Task ValidateExpiryMonth_ReturnsBadRequest(int expiryMonth, HttpStatusCode statusCode)
     {
         // Arrange
-        _bankClientMock.Setup(bc => bc.AuthorizeTranaction(It.IsAny<PostAcquirerRequest>()))
+        _bankClientMock.Setup(bc => bc.AuthorizeTransaction(It.IsAny<PostAcquirerRequest>()))
           .ReturnsAsync(new PostAcquirerResponse() { AuthorizationCode = Guid.NewGuid().ToString(), Authorized = true });
 
         SetHttpClient();
 
         // Act 
-        var request = new PostPaymentRequest() { Amount = -10, Currency = "GBP", CardNumber = 1234567890123457, ExpiryMonth = expiryMonth, ExpiryYear = 2026, Cvv = 111 };
-        var response = await _httpClient.PostAsync($"/api/Payments", JsonContent.Create(request));
+        var dateTime = DateTime.UtcNow.AddMonths(5);
+        var request = new PostPaymentRequest() { Amount = -10, Currency = "GBP", CardNumber = 1234567890123457, ExpiryMonth = expiryMonth, ExpiryYear = dateTime.Year, Cvv = 111 };
+        var body = JsonContent.Create(request, options: new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        });
+        var response = await _httpClient.PostAsync($"/api/payments", body);
 
         // Assert
 
@@ -148,7 +165,7 @@ public class PaymentsControllerUnitTests
     public async Task ValidateDateTimeInFuture_ReturnsBadRequest(int minusMonths, HttpStatusCode statusCode, string validationMessage)
     {
         // Arrange
-        _bankClientMock.Setup(bc => bc.AuthorizeTranaction(It.IsAny<PostAcquirerRequest>()))
+        _bankClientMock.Setup(bc => bc.AuthorizeTransaction(It.IsAny<PostAcquirerRequest>()))
           .ReturnsAsync(new PostAcquirerResponse() { AuthorizationCode = Guid.NewGuid().ToString(), Authorized = true });
 
         SetHttpClient();
@@ -156,7 +173,11 @@ public class PaymentsControllerUnitTests
         // Act 
         var dateTime = DateTime.UtcNow.AddMonths(minusMonths);
         var request = new PostPaymentRequest() { Amount = -10, Currency = "GBP", CardNumber = 1234567890123457, ExpiryMonth = dateTime.Month, ExpiryYear = dateTime.Year, Cvv = 111 };
-        var response = await _httpClient.PostAsync($"/api/Payments", JsonContent.Create(request));
+        var body = JsonContent.Create(request, options: new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        });
+        var response = await _httpClient.PostAsync($"/api/payments", body);
         var responseContent = await response.Content.ReadAsStringAsync();
 
         // Assert
@@ -175,7 +196,11 @@ public class PaymentsControllerUnitTests
         // Act 
         var dateTime = DateTime.UtcNow.AddMonths(5);
         var request = new PostPaymentRequest() { Amount = -10, Currency = currency, CardNumber = 1234567890123457, ExpiryMonth = dateTime.Month, ExpiryYear = dateTime.Year, Cvv = 111 };
-        var response = await _httpClient.PostAsync($"/api/Payments", JsonContent.Create(request));
+        var body = JsonContent.Create(request, options: new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        });
+        var response = await _httpClient.PostAsync($"/api/Payments", body);
         var responseContent = await response.Content.ReadAsStringAsync();
 
         // Assert
@@ -194,7 +219,11 @@ public class PaymentsControllerUnitTests
         // Act 
         var dateTime = DateTime.UtcNow.AddMonths(5);
         var request = new PostPaymentRequest() { Amount = -10, Currency = "GBP", CardNumber = 1234567890123457, ExpiryMonth = dateTime.Month, ExpiryYear = dateTime.Year, Cvv = cvv };
-        var response = await _httpClient.PostAsync($"/api/Payments", JsonContent.Create(request));
+        var body = JsonContent.Create(request, options: new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        });
+        var response = await _httpClient.PostAsync($"/api/payments", body);
         var responseContent = await response.Content.ReadAsStringAsync();
 
         // Assert
@@ -210,5 +239,12 @@ public class PaymentsControllerUnitTests
             .AddSingleton(_paymentsRepositoryMock.Object)
             .AddSingleton(_bankClientMock.Object)))
         .CreateClient();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        _httpClient.Dispose();
+        _webApplicationFactory.Dispose();
     }
 }

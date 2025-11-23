@@ -44,7 +44,14 @@ public class PaymentsController : Controller
             return BadRequest(validationMessage);
         }
 
-        var acquirerResponse = await _bankClient.AuthorizeTranaction(new PostAcquirerRequest());
+        var acquirerResponse = await _bankClient.AuthorizeTransaction(new()
+        {
+            Amount = request.Amount,
+            Currency = request.Currency,
+            CardNumber = request.CardNumber.ToString(),
+            ExpiryDate = $"{request.ExpiryMonth}/{request.ExpiryYear}",
+            Cvv = request.Cvv.ToString()
+        });
 
         var response = new PostPaymentResponse()
         {

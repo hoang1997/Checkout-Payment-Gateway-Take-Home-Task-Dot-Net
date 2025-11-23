@@ -5,6 +5,6 @@ namespace PaymentGateway.Api.Services.AcquirerService
 {
     public interface IBankClient
     {
-        public Task<PostAcquirerResponse> AuthorizeTranaction(PostAcquirerRequest request);
+        public Task<PostAcquirerResponse> AuthorizeTransaction(PostAcquirerRequest request);
     }
 }
