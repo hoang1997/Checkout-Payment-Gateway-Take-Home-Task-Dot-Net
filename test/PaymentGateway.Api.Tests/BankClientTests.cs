@@ -16,7 +16,7 @@ namespace PaymentGateway.Api.Tests
                 Amount = 100,
                 Currency = "USD",
                 CardNumber = "1234567812345678",
-                ExpiryDate = "12/25",
+                ExpiryDate = "12/2025",
                 Cvv = "123"
             };
         }
@@ -107,7 +107,7 @@ namespace PaymentGateway.Api.Tests
             var isValid = sut.ValidateRequest(_request, out string validationMessage);
 
             Assert.That(isValid, Is.False);
-            Assert.That(validationMessage, Is.EqualTo("Invalid expiry date format. Use MM/YY"));
+            Assert.That(validationMessage, Is.EqualTo("Invalid expiry date format. Use MM/YYYY"));
         }
     }
 }

@@ -29,3 +29,7 @@ General steps
 Considerations made
 1. Assumption was that when there were validation issues with the request that a 400 Bad Request response is returned with the status and reason for failure instead of returning the whole response back
 2. The casing for the request and response back to the client would be snake case lower format
+
+Improvements that could of been made
+1. Better resilience with third party API's by implementing immediate and delayed retries
+2. Better error handling and logging

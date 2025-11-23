@@ -22,7 +22,7 @@ namespace PaymentGateway.Api.Tests
             _paymentRequest = new PostAcquirerRequest
             {
                 CardNumber = AuthorizedCardNumber,
-                ExpiryDate = "04/25",
+                ExpiryDate = "04/2025",
                 Cvv = "123",
                 Amount = 100,
                 Currency = "GBP"

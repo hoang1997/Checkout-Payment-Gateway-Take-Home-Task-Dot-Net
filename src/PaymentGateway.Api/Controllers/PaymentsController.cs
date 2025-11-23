@@ -36,32 +36,22 @@ public class PaymentsController : Controller
     [HttpPost()]
     public async Task<ActionResult<PostPaymentResponse?>> PostPaymentAsync([FromBody]PostPaymentRequest request)
     {
-        ValidateRequest(request, out string validationMessage);
-
-        if (!string.IsNullOrEmpty(validationMessage))
+        if (ValidateRequest(request, out string validationMessage))
         {
             return BadRequest(new PostPaymentRejectedResponse(validationMessage));
         }
 
-        var acquirerResponse = await _bankClient.AuthorizeTransaction(new()
+        PaymentStatus status;
+        try
         {
-            Amount = request.Amount,
-            Currency = request.Currency,
-            CardNumber = request.CardNumber.ToString(),
-            ExpiryDate = $"{request.ExpiryMonth}/{request.ExpiryYear}",
-            Cvv = request.Cvv.ToString()
-        });
+            status = await AuthorizeTransaction(request);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new PostPaymentRejectedResponse(ex.Message));
+        }
 
-        var response = new PostPaymentResponse()
-        {
-            Id = Guid.NewGuid(),
-            Amount = request.Amount,
-            Currency = request.Currency,
-            CardNumberLastFour = (int)(request.CardNumber % 10000),
-            ExpiryMonth = request.ExpiryMonth,
-            ExpiryYear = request.ExpiryYear,
-            Status = acquirerResponse.Authorized ? PaymentStatus.Authorized : PaymentStatus.Declined
-        };
+        var response = MapToPostPaymentResponse(request, status);
 
         _paymentsRepository.Add(response);
 
@@ -103,6 +93,34 @@ public class PaymentsController : Controller
             validationMessage = "Invalid CVV, must contain only 3-4 numeric characters";
         }
 
-        return validationMessage == "" ? true : false;
+        return validationMessage == "" ? false : true;
+    }
+
+    private async Task<PaymentStatus> AuthorizeTransaction(PostPaymentRequest request)
+    {
+        var acquirerResponse = await _bankClient.AuthorizeTransaction(new()
+        {
+            Amount = request.Amount,
+            Currency = request.Currency,
+            CardNumber = request.CardNumber.ToString(),
+            ExpiryDate = $"{request.ExpiryMonth}/{request.ExpiryYear}",
+            Cvv = request.Cvv.ToString()
+        });
+
+        return acquirerResponse.Authorized ? PaymentStatus.Authorized : PaymentStatus.Declined;
+    }
+
+    private PostPaymentResponse MapToPostPaymentResponse(PostPaymentRequest request, PaymentStatus status)
+    {
+        return new PostPaymentResponse()
+        {
+            Id = Guid.NewGuid(),
+            Amount = request.Amount,
+            Currency = request.Currency,
+            CardNumberLastFour = (int)(request.CardNumber % 10000),
+            ExpiryMonth = request.ExpiryMonth,
+            ExpiryYear = request.ExpiryYear,
+            Status = status
+        };
     }
 }
