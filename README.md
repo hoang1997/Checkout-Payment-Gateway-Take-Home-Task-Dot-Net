@@ -22,14 +22,13 @@ General steps
 1. Firstly started with running the bank simulator locally to check its working
 2. Then started to look into calling the api via a client and implemented the IBankClient/BankClient with a singular method which calls the simulator bank and returns a response. With simple unit tests to validate the request to the Bank Simulator
 3. Created some integration tests for the BankClient calling the simulator
-4. Started to create simple unit tests for validating the PaymentsController Post endpoint and then refactored after all tests passed 
+4. Started to create simple unit tests for validating the PaymentsController Post endpoint and then refactored after all tests passed, also refactored tests to Mock Payments Repository
 5. Dependency injected the BankClient for the controller to have access 
-6. Implemented the call to the BankClient with consideration of mapping the PostPaymentResponse to a class which was more suited the Bank Simulator as there were subtle differences
+6. Implemented the call to the BankClient in the controller with consideration of mapping the PostPaymentResponse to a class which was more suited the Bank Simulator as there were subtle differences
 
 Considerations made
 1. Assumption was that when there were validation issues with the request that a 400 Bad Request response is returned with the status and reason for failure instead of returning the whole response back
 2. The casing for the request and response back to the client would be snake case lower format
 
-Improvements that could of been made
-1. Better resilience with third party API's by implementing immediate and delayed retries
-2. Better error handling and logging
+Improvements that could of been made given more time
+1. Better resilience with Bank Simulator API by implementing immediate and delayed retries using packages such as Polly
