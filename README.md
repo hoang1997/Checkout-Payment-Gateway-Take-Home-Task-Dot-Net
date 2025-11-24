@@ -31,4 +31,4 @@ Considerations made
 2. The casing for the request and response back to the client would be snake case lower format
 
 Improvements that could of been made given more time
-1. Better resilience with Bank Simulator API by implementing immediate and delayed retries using packages such as Polly
+1. Better resilience with Bank Simulator API by implementing immediate and delayed retries using packages such as Polly. This could include logic to only retry for certain responses or exceptions. For example 5xx responses should be retried and 4xx responses should not be retried unless its a 409 e.g. concurrency exceptions
