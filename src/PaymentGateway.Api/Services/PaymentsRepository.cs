@@ -1,18 +1,22 @@
-﻿using PaymentGateway.Api.Models.Responses;
+﻿using System.Reflection.Metadata;
+
+using PaymentGateway.Api.Models.Responses;
 
 namespace PaymentGateway.Api.Services;
 
-public class PaymentsRepository
+public class PaymentsRepository : IPaymentsRepository
 {
-    public List<PostPaymentResponse> Payments = new();
+    public Dictionary<Guid,PostPaymentResponse> Payments = new();
     
     public void Add(PostPaymentResponse payment)
     {
-        Payments.Add(payment);
+        Payments.TryAdd(payment.Id, payment);
     }
 
-    public PostPaymentResponse Get(Guid id)
+    public PostPaymentResponse? Get(Guid id)
     {
-        return Payments.FirstOrDefault(p => p.Id == id);
+        Payments.TryGetValue(id, out PostPaymentResponse response);
+
+        return response;
     }
 }
